@@ -52,6 +52,7 @@ def validate_blueprint(
     team_size: int,
     duration_weeks: int
 ) -> list:
+    """Validate the generated architecture and project roadmap."""
 
     warnings = []
 
@@ -166,12 +167,22 @@ def validate_blueprint(
             + "."
         )
 
-    # 5. Check every weekly entry's required fields.
+    # Check exact number and order of weekly entries.
+    if detected_weeks != expected_weeks:
+        warnings.append(
+            "Weekly entries must appear exactly once, "
+            "in order from Week 1 to Week "
+            f"{duration_weeks}."
+        )
+
+    # 5. Validate each weekly entry.
     required_fields = [
         "Tasks",
         "Responsible Members",
         "Expected Outcome"
     ]
+
+    weekly_member_numbers = set()
 
     for index, match in enumerate(week_matches):
 
@@ -202,9 +213,28 @@ def validate_blueprint(
                 )
                 continue
 
-            if not field_match.group(1).strip():
+            field_value = field_match.group(1).strip()
+
+            if not field_value:
                 warnings.append(
                     f"Week {week_number} has an empty '{field}' field."
+                )
+
+            # Collect members assigned specifically in weekly entries.
+            if field == "Responsible Members":
+                assigned_members = re.findall(
+                    r"\bMember\s+(\d+)\b",
+                    field_value,
+                    re.IGNORECASE
+                )
+
+                if not assigned_members:
+                    warnings.append(
+                        f"Week {week_number} has no valid member assignments."
+                    )
+
+                weekly_member_numbers.update(
+                    int(number) for number in assigned_members
                 )
 
     # 6. Check team member assignments.
@@ -227,15 +257,11 @@ def validate_blueprint(
             + "."
         )
 
-    # Check that every team member has a responsibility.
+    # Check that every team member appears in weekly assignments.
     for member in range(1, team_size + 1):
-        if not re.search(
-            rf"\bMember\s+{member}\b",
-            project_plan,
-            re.IGNORECASE
-        ):
+        if member not in weekly_member_numbers:
             warnings.append(
-                f"Member {member} has no assigned responsibilities."
+                f"Member {member} has no assignment in the weekly timeline."
             )
 
     # 7. Compare technologies between agents.

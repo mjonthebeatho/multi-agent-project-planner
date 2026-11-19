@@ -167,7 +167,6 @@ Make the workload realistic for a {skill_level} team.
 Return all eight sections in the required format.
 """
 
-
     try:
         response = ollama.chat(
             model=MODEL,
@@ -187,7 +186,12 @@ Return all eight sections in the required format.
             }
         )
 
-        return response["message"]["content"]
+        content = response.get("message", {}).get("content", "").strip()
+
+        if not content:
+            return "Project Manager Agent Error: Model returned an empty response."
+
+        return content
 
     except Exception as error:
         return f"Project Manager Agent Error: {str(error)}"

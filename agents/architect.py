@@ -155,7 +155,6 @@ PROJECT CONSTRAINTS:
 Return all 11 sections in the specified output format.
 """
 
-
     try:
         response = ollama.chat(
             model=MODEL,
@@ -175,7 +174,12 @@ Return all 11 sections in the specified output format.
             }
         )
 
-        return response["message"]["content"]
+        content = response.get("message", {}).get("content", "").strip()
+
+        if not content:
+            return "Architect Agent Error: Model returned an empty response."
+
+        return content
 
     except Exception as error:
         return f"Architect Agent Error: {str(error)}"
